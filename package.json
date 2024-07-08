@@ -1,0 +1,16 @@
+{
+	"name": "modernizando",
+	"version": "1.0.0",
+	"main": "index.js",
+	"license": "MIT",
+	"dependencies": {
+		"express": "4.19.2"
+	},
+	"devDependencies": {
+		"nodemon": "3.1.4",
+		"sucrase": "^3.35.0"
+	},
+	"scripts": {
+		"dev": "nodemon ./src/server.js"
+	}
+}
