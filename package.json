@@ -1,16 +1,24 @@
 {
-	"name": "modernizando",
-	"version": "1.0.0",
-	"main": "index.js",
-	"license": "MIT",
-	"dependencies": {
-		"express": "4.19.2"
-	},
-	"devDependencies": {
-		"nodemon": "3.1.4",
-		"sucrase": "^3.35.0"
-	},
-	"scripts": {
-		"dev": "nodemon ./src/server.js"
-	}
+  "name": "modernizando",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "express": "4.19.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.6.0",
+    "@stylistic/eslint-plugin-js": "^2.3.0",
+    "eslint": "^9.6.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "globals": "^15.8.0",
+    "nodemon": "3.1.4",
+    "prettier": "^3.3.2",
+    "sucrase": "^3.35.0"
+  },
+  "scripts": {
+    "dev": "nodemon ./src/server.js",
+    "lint": "eslint src/**/*.js"
+  }
 }
