@@ -1,64 +1,175 @@
-let customers = [
-	{ id: 1, name: "Youtube", site: "http://www.youtube.com" },
-	{ id: 2, name: "Google", site: "http://www.google.com" },
-	{ id: 3, name: "UOL", site: "http://www.uol.com" },
-];
+import * as Yup from "yup";
+import { Op } from "sequelize";
+import { parseISO } from "date-fns";
+
+import Customer from "../models/Customer";
+import Contact from "../models/Contact";
 
 class CustomersController {
-	// Listagem dos Customers
-	index(req, res) {
-		return res.json(customers);
-	}
+  // Listagem dos Customers
+  async index(req, res) {
+    const {
+      name,
+      email,
+      status,
+      createdBefore,
+      createdAfter,
+      updatedBefore,
+      updatedAfter,
+      sort,
+    } = req.query;
 
-	// Recupera 1 Customer
-	show(req, res) {
-		const id = parseInt(req.params.id);
-		const customer = customers.find((item) => item.id === id);
-		const status = customer ? 200 : 404;
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 25;
 
-		return res.status(status).json(customer);
-	}
+    let where = {};
+    let order = [];
 
-	// Cria um novo Customer
-	create(req, res) {
-		const { name, site } = req.body;
-		const id = customers[customers.length - 1].id + 1;
+    if (name) {
+      where = {
+        ...where,
+        name: {
+          [Op.iLike]: name,
+        },
+      };
+    }
 
-		const newCustomer = { id, name, site };
+    if (email) {
+      where = {
+        ...where,
+        email: {
+          [Op.iLike]: email,
+        },
+      };
+    }
 
-		customers.push(newCustomer);
+    if (status) {
+      where = {
+        ...where,
+        status: {
+          [Op.in]: status.split(",").map((item) => item.toUpperCase()),
+        },
+      };
+    }
 
-		return res.status(201).json(newCustomer);
-	}
+    if (createdBefore) {
+      where = {
+        ...where,
+        createdAt: {
+          [Op.lte]: parseISO(createdBefore),
+        },
+      };
+    }
 
-	// Atualiza um Customer
-	update(req, res) {
-		const id = parseInt(req.params.id);
-		const { name, site } = req.body;
+    if (createdAfter) {
+      where = {
+        ...where,
+        createdAt: {
+          [Op.gte]: parseISO(createdAfter),
+        },
+      };
+    }
 
-		const index = customers.findIndex((item) => item.id === id);
-		const status = index >= 0 ? 200 : 404;
+    if (updatedBefore) {
+      where = {
+        ...where,
+        updatedAt: {
+          [Op.lte]: parseISO(updatedBefore),
+        },
+      };
+    }
 
-		if (index >= 0) {
-			customers[index] = { id, name, site };
-		}
+    if (updatedAfter) {
+      where = {
+        ...where,
+        updatedAt: {
+          [Op.gte]: parseISO(updatedAfter),
+        },
+      };
+    }
 
-		return res.status(status).json(customers[index]);
-	}
+    if (sort) {
+      order = sort.split(",").map((item) => item.split(":"));
+    } else {
+      order = ["id"];
+    }
 
-	// Deleta um Customer
-	destroy(req, res) {
-		const id = parseInt(req.params.id);
+    const data = await Customer.findAll({
+      where,
+      include: [
+        {
+          model: Contact,
+          attributes: ["id", "name", "status"],
+        },
+      ],
+      order,
+      limit,
+      offset: (page - 1) * limit,
+    });
 
-		const index = customers.findIndex((item) => item.id === id);
-		const status = index >= 0 ? 200 : 404;
+    return res.json(data);
+  }
 
-		if (index >= 0) {
-			customers.splice(index, 1);
-		}
+  // Recupera 1 Customer
+  async show(req, res) {
+    const customer = await Customer.findByPk(req.params.id);
+    const status = customer ? 200 : 404;
 
-		return res.status(status).json();
-	}
+    return res.status(status).json(customer);
+  }
+
+  // Cria um novo Customer
+  async create(req, res) {
+    const schema = Yup.object().shape({
+      name: Yup.string().required(),
+      email: Yup.string().email().required(),
+      status: Yup.string().uppercase(),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: "Error on validate schema!" });
+    }
+
+    const customer = await Customer.create(req.body);
+
+    return res.status(201).json(customer);
+  }
+
+  // Atualiza um Customer
+  async update(req, res) {
+    const schema = Yup.object().shape({
+      name: Yup.string(),
+      email: Yup.string().email(),
+      status: Yup.string().uppercase(),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: "Error on validate schema!" });
+    }
+
+    const customer = await Customer.findByPk(req.params.id);
+
+    if (!customer) {
+      return res.status(404).json();
+    }
+
+    await customer.update(req.body);
+
+    return res.json(customer);
+  }
+
+  // Deleta um Customer
+  async destroy(req, res) {
+    const customer = await Customer.findByPk(req.params.id);
+
+    if (!customer) {
+      return res.status(404).json();
+    }
+
+    await customer.destroy();
+
+    return res.json();
+  }
 }
 
 export default new CustomersController();
